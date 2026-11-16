@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeeRPG v4 – Oceňovanie vozidiel a výhodnosť obchodov</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07090d; --surface:rgba(22,26,36,.74); --s2:rgba(255,255,255,.035); --s3:rgba(255,255,255,.065);
+    --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.12);
+    --text:#eef1f7; --muted:#8a93a8; --dim:#5d6578;
+    --amber:#ffb547; --orange:#ff7a3d; --cyan:#3dd6ff; --violet:#8b7bff; --emerald:#2ee6a6;
+    --g:#34d17f; --y:#ffd43b; --o:#ff8f3d; --r:#ff5468;
+    --grad:linear-gradient(135deg,var(--amber),var(--orange));
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{margin:0;min-height:100vh;color:var(--text);font:14.5px/1.5 Inter,system-ui,sans-serif;
+    background:radial-gradient(900px 500px at 5% -10%,rgba(255,140,60,.12),transparent 60%),
+      radial-gradient(800px 600px at 100% 0%,rgba(46,230,166,.08),transparent 55%),
+      radial-gradient(700px 500px at 50% 115%,rgba(139,123,255,.08),transparent 60%),var(--bg);
+    background-attachment:fixed}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+    background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:44px 44px;mask-image:radial-gradient(ellipse at top,#000 20%,transparent 75%)}
+
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(7,9,13,.66);border-bottom:1px solid var(--border)}
+  .hdr{max-width:1360px;margin:0 auto;padding:13px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;font-weight:800;color:#1a0f00;box-shadow:0 6px 24px -6px rgba(255,140,60,.6)}
+  .brand h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.2px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  .chips{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:var(--s2);border:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .chip b{font:700 13px var(--mono);color:var(--text)}
+  .chip .gem{color:var(--emerald)}
+  .saved{font-size:12px;color:var(--g);opacity:0;transition:.3s}
+  .saved.show{opacity:1}
+
+  main{max-width:1360px;margin:0 auto;padding:24px 28px 40px;display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:24px;align-items:start}
+  @media (max-width:1100px){main{grid-template-columns:1fr;padding:16px}}
+  .col{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .side{position:sticky;top:84px}
+  @media (max-width:1100px){.side{position:static}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 20px 50px -30px rgba(0,0,0,.8)}
+  .ch{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .ch .n{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--grad);color:#1a0f00;font-weight:800;font-size:14px}
+  .ch h2{margin:0;font-size:16px;font-weight:650}
+  .ch p{margin:1px 0 0;font-size:12.5px;color:var(--muted)}
+  .ch .act{margin-left:auto;color:var(--muted);transition:transform .25s}
+  details.card>summary{list-style:none;cursor:pointer}
+  details.card>summary::-webkit-details-marker{display:none}
+  details.card:not([open])>summary .ch{margin-bottom:0}
+  details[open] .ch .act{transform:rotate(180deg)}
+  .lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:22px 0 10px;display:flex;align-items:center;gap:10px}
+  .lbl::after{content:"";flex:1;height:1px;background:var(--border)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:680px){.g2,.g3{grid-template-columns:1fr}}
+
+  .field{display:flex;flex-direction:column;gap:7px;min-width:0}
+  .field>.t{font-size:12.5px;color:var(--muted);font-weight:500}
+  .field>.h{font-size:12px;color:var(--dim);min-height:16px}
+  .in{display:flex;align-items:center;background:rgba(0,0,0,.28);border:1px solid var(--border2);border-radius:10px;transition:.2s}
+  .in:hover{border-color:rgba(255,255,255,.18)}
+  .in:focus-within{border-color:var(--amber);box-shadow:0 0 0 4px rgba(255,181,71,.12)}
+  .in input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:var(--text);padding:11px 13px;font:600 15px var(--mono);letter-spacing:-.3px}
+  .in input.txt{font:500 15px Inter;letter-spacing:0}
+  .in input::placeholder{color:var(--dim)}
+  .in .u{padding:0 12px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;font:600 13.5px Inter;border-radius:10px;padding:10px 16px;transition:.2s}
+  .btn-p{background:var(--grad);color:#1a0f00;box-shadow:0 8px 22px -10px rgba(255,140,60,.8)}
+  .btn-p:hover{transform:translateY(-1px)}
+  .btn-g{background:var(--s2);color:var(--text);border:1px solid var(--border2)}
+  .btn-g:hover{background:var(--s3)}
+  .btn-sm{padding:7px 12px;font-size:12.5px}
+
+  .ref{border-radius:14px;padding:16px;background:linear-gradient(135deg,rgba(61,214,255,.07),rgba(139,123,255,.05));border:1px solid rgba(61,214,255,.15)}
+  .ref-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .ref-foot .res{font-size:13px;color:var(--muted)}
+  .ref-foot .res b{font:700 18px var(--mono);color:var(--cyan);margin:0 4px}
+
+  .sl{background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:14px 14px 12px}
+  .sl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .sl .top span{font-size:12.5px;color:var(--muted);font-weight:500}
+  .sl .top b{font:700 15px var(--mono);color:var(--amber)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;margin:0;cursor:pointer;
+    background:linear-gradient(90deg,var(--amber),var(--orange)) 0/var(--p,50%) 100% no-repeat,rgba(255,255,255,.08)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--orange);box-shadow:0 2px 10px rgba(0,0,0,.5)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:4px solid var(--orange)}
+  .sl .scale{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--dim);margin-top:7px}
+
+  /* mode cards */
+  .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width:680px){.modes{grid-template-columns:1fr}}
+  .mode{position:relative;text-align:left;cursor:pointer;padding:14px;border-radius:14px;border:1px solid var(--border2);background:rgba(0,0,0,.22);color:var(--text);font:inherit;transition:.2s}
+  .mode:hover{border-color:rgba(255,255,255,.22)}
+  .mode .mt{font-weight:650;font-size:13.5px;display:flex;justify-content:space-between;gap:8px}
+  .mode .mt b{font:800 13px var(--mono);color:var(--muted)}
+  .mode .md{font-size:12px;color:var(--muted);margin-top:4px}
+  .mode.on{border-color:rgba(255,181,71,.55);background:rgba(255,181,71,.07);box-shadow:0 0 0 3px rgba(255,181,71,.08)}
+  .mode.on .mt b{color:var(--amber)}
+
+  .venoms{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+  .venoms button{aspect-ratio:1;max-height:50px;border-radius:11px;border:1px solid var(--border2);background:rgba(0,0,0,.25);color:var(--muted);font:700 15px var(--mono);cursor:pointer;transition:.15s}
+  .venoms button:hover{border-color:var(--amber);color:var(--text)}
+  .venoms button.lit{background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.35);color:var(--amber)}
+  .venoms button.on{background:var(--grad);border-color:transparent;color:#1a0f00;box-shadow:0 6px 18px -6px rgba(255,140,60,.8)}
+  .note{margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .note b{color:var(--text);font-family:var(--mono)}
+
+  .extras{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media (max-width:760px){.extras{grid-template-columns:1fr}}
+  .ex{display:grid;grid-template-columns:auto 1fr 112px auto;align-items:center;gap:10px;padding:7px 6px 7px 12px;border-radius:12px;background:var(--s2);border:1px solid var(--border);transition:.2s}
+  .ex.on{border-color:rgba(255,181,71,.32);background:rgba(255,181,71,.055)}
+  .ex .name{background:transparent;border:0;outline:none;color:var(--text);font:500 13.5px Inter;min-width:0;width:100%}
+  .ex .in input{padding:7px 8px;font-size:13.5px;text-align:right}
+  .ex .in .u{padding:0 8px 0 2px;font-size:11px}
+  .sw{appearance:none;-webkit-appearance:none;width:36px;height:21px;border-radius:99px;background:rgba(255,255,255,.12);position:relative;cursor:pointer;transition:.2s;margin:0;flex:none}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.2s}
+  .sw:checked{background:var(--grad)}
+  .sw:checked::after{left:18px}
+  .x{width:26px;height:26px;border-radius:7px;border:0;background:transparent;color:var(--dim);cursor:pointer;font-size:16px}
+  .x:hover{background:rgba(255,84,104,.12);color:var(--r)}
+  .ex-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+
+  /* ---- side ---- */
+  .rth{padding:0;overflow:hidden}
+  .hero{padding:22px 22px 18px;background:radial-gradient(600px 220px at 0% 0%,rgba(255,140,60,.17),transparent 70%),radial-gradient(400px 220px at 100% 100%,rgba(46,230,166,.1),transparent 70%)}
+  .hero .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);display:flex;justify-content:space-between;gap:10px}
+  .hero .k span:last-child{text-transform:none;letter-spacing:0;color:var(--text);font-weight:600;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .big{font:800 34px/1.1 var(--mono);letter-spacing:-1.5px;margin:8px 0 6px;background:linear-gradient(135deg,#fff 30%,var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .big small{font-size:17px;letter-spacing:0}
+  .eq{display:flex;gap:14px;flex-wrap:wrap;font:600 13px var(--mono)}
+  .eq .gem{color:var(--emerald)} .eq .sp{color:var(--cyan)}
+  .stack{display:flex;height:9px;border-radius:99px;overflow:hidden;margin-top:16px;background:rgba(255,255,255,.06);gap:2px}
+  .stack div{height:100%;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+  .lines{padding:4px 22px;border-top:1px solid var(--border)}
+  .ln{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+  .ln:last-child{border-bottom:0}
+  .ln i{width:10px;height:10px;border-radius:3px}
+  .ln .l{font-size:13.5px;font-weight:500}
+  .ln .l small{display:block;color:var(--dim);font-size:11.5px;font-weight:400}
+  .ln .v{text-align:right;font:700 14px var(--mono);white-space:nowrap}
+  .ln .v small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:11px}
+  .seg button{border:0;background:transparent;color:var(--muted);font:600 12.5px Inter;padding:7px 12px;white-space:nowrap;border-radius:8px;cursor:pointer}
+  .seg button.on{background:var(--s3);color:var(--text);box-shadow:inset 0 0 0 1px rgba(255,181,71,.45)}
+
+  .verdict{margin-top:16px;border-radius:16px;padding:16px;border:1px solid var(--border);background:var(--s2);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;transition:.3s}
+  .light{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:14px;background:#05070a;border:1px solid var(--border)}
+  .light i{width:18px;height:18px;border-radius:50%;opacity:.16;transition:.3s}
+  .light i.on{opacity:1;box-shadow:0 0 14px 2px currentColor}
+  .light i:nth-child(1){background:var(--g);color:var(--g)}
+  .light i:nth-child(2){background:var(--y);color:var(--y)}
+  .light i:nth-child(3){background:var(--o);color:var(--o)}
+  .light i:nth-child(4){background:var(--r);color:var(--r)}
+  .verdict .vt{font-size:18px;font-weight:750;letter-spacing:-.3px}
+  .verdict .vp{font:700 13px var(--mono);margin-top:2px}
+  .verdict .vd{font-size:12.5px;color:var(--muted);margin-top:6px}
+  .verdict .vd b{font-family:var(--mono);color:var(--text)}
+  .verdict.empty .vt{color:var(--muted);font-size:15px}
+
+  .gauge{position:relative;margin:34px 4px 6px}
+  .gbar{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px}
+  .gbar div{height:100%}
+  .gmark{position:absolute;top:-7px;width:3px;height:24px;border-radius:2px;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.6);transform:translateX(-50%);transition:left .4s cubic-bezier(.2,.8,.2,1)}
+  .gmark::after{content:attr(data-l);position:absolute;top:-20px;left:50%;transform:translateX(-50%);font:700 11px var(--mono);white-space:nowrap;color:var(--text)}
+  .gzero{position:absolute;top:14px;transform:translateX(-50%);font:600 10.5px var(--mono);color:var(--dim)}
+  .bands{display:flex;flex-direction:column;gap:6px;margin-top:22px}
+  .band{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:9px 12px;border-radius:11px;border:1px solid var(--border);background:var(--s2);transition:.25s}
+  .band i{width:10px;height:10px;border-radius:50%}
+  .band .bn{font-size:13px;font-weight:600}
+  .band .bn small{display:block;font:500 11px var(--mono);color:var(--dim)}
+  .band .br{font:600 12px var(--mono);color:var(--muted);text-align:right}
+  .band.act{border-color:currentColor;background:color-mix(in srgb,currentColor 9%,transparent)}
+  .band.act .bn{color:currentColor}
+  .build{margin-top:14px;padding:13px 14px;border-radius:12px;background:rgba(0,0,0,.22);border:1px dashed var(--border2);font-size:12.5px;color:var(--muted)}
+  .build b{font-family:var(--mono);color:var(--text)}
+  .build .pos{color:var(--g)} .build .neg{color:var(--r)}
+
+  footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 34px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="logo">SP</div>
+    <div class="brand"><h1>Oceňovanie vozidiel</h1><p>SeeRPG v4 · reálna trhová hodnota a výhodnosť obchodu</p></div>
+    <span class="saved" id="savedMsg">✓ Uložené</span>
+    <div class="chips">
+      <div class="chip">Kurz <b id="hRate">–</b></div>
+      <div class="chip"><span class="gem">◆</span> Smaragd <b id="hGem">–</b></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="col">
+
+  <!-- 1. KALIBRÁCIA -->
+  <details class="card" id="calCard" open>
+    <summary><div class="ch"><div class="n">1</div><div><h2>Kalibrácia trhu</h2><p>Ukladá sa automaticky v tomto prehliadači.</p></div>
+      <svg class="act" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></div></summary>
+
+    <div class="ref">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Kurz z referenčného itemu</div>
+      <div class="g2">
+        <label class="field"><span class="t">IC cena itemu</span><div class="in"><input class="num" id="refFt" data-def="90000000"><span class="u">Ft</span></div></label>
+        <label class="field"><span class="t">SP cena itemu</span><div class="in"><input class="num" id="refSp" data-def="12200"><span class="u">SP</span></div></label>
+      </div>
+      <div class="ref-foot">
+        <div class="res">Vypočítaný kurz<b id="refRate">–</b>Ft / SP</div>
+        <button class="btn btn-p" id="applyRef">Použiť kurz</button>
+      </div>
+    </div>
+
+    <div class="g3" style="margin-top:16px">
+      <label class="field"><span class="t">Aktívny kurz</span><div class="in"><input class="num" id="rate" data-def="7377"><span class="u">Ft / SP</span></div></label>
+      <label class="field"><span class="t">Cena 1× Venom</span><div class="in"><input class="num" id="venomSp" data-def="1400"><span class="u">SP</span></div></label>
+      <label class="field"><span class="t">1× Smaragd amulett</span><div class="in"><input class="num" id="gemFt" data-def="90000000"><span class="u">Ft</span></div></label>
+    </div>
+
+    <div class="lbl">Koeficienty</div>
+    <div class="g2">
+      <div class="sl"><div class="top"><span>Bazárová návratnosť tuningov</span><b id="retV"></b></div>
+        <input type="range" id="ret" min="30" max="80" step="1" data-def="55"><div class="scale"><span>30 %</span><span>80 %</span></div></div>
+      <div class="sl" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:end">
+        <label class="field"><span class="t" style="font-size:11.5px">Nevypredané</span><div class="in"><input class="num" id="kOpen" data-def="92"><span class="u">%</span></div></label>
+        <label class="field"><span class="t" style="font-size:11.5px">Limit</span><div class="in"><input class="num" id="kSold" data-def="110"><span class="u">%</span></div></label>
+        <label class="field"><span class="t" style="font-size:11.5px">Rare</span><div class="in"><input class="num" id="kRare" data-def="100"><span class="u">%</span></div></label>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-g btn-sm" id="resetCal">↺ Obnoviť predvolené</button></div>
+  </details>
+
+  <!-- 2. KONFIGURÁTOR -->
+  <section class="card">
+    <div class="ch"><div class="n">2</div><div><h2>Konfigurátor vozidla</h2><p>Základ, tuning, SP doplnky a zberateľský bonus.</p></div>
+      <button class="btn btn-g btn-sm act" id="resetCar" style="transform:none">Nové auto</button></div>
+
+    <label class="field"><span class="t">Názov auta <span style="color:var(--dim)">(voliteľné)</span></span>
+      <div class="in"><input class="txt" id="carName" placeholder="napr. Lamborghini Aventador"></div></label>
+
+    <div class="lbl">Režim výpočtu základu</div>
+    <div class="modes" id="modes">
+      <button class="mode" data-v="open"><div class="mt">Nevypredané v salóne <b id="mOpen">92 %</b></div><div class="md">Autosalónová cena → jazdený základ</div></button>
+      <button class="mode" data-v="sold"><div class="mt">Vypredané / Limit <b id="mSold">110 %</b></div><div class="md">Autosalónová cena → limitovaný základ</div></button>
+      <button class="mode" data-v="rare"><div class="mt">Rare / Trhová podlaha <b id="mRare">100 %</b></div><div class="md">Najlacnejší kus na trhu</div></button>
+    </div>
+
+    <div class="g2" style="margin-top:14px">
+      <label class="field"><span class="t" id="baseLbl">Autosalónová cena</span>
+        <div class="in"><input class="num" id="basePrice" data-def="0" placeholder="0"><span class="u">Ft</span></div>
+        <span class="h" id="baseConv"></span></label>
+      <label class="field"><span class="t">Zberateľský bonus</span>
+        <div class="in"><input class="num" id="bonus" data-def="0" placeholder="0"><span class="u">Ft</span></div>
+        <span class="h">nízke alvázszám, A/B/C ŠPZ, Airride, Összkerék…</span></label>
+    </div>
+
+    <div class="lbl">Venom diely</div>
+    <div class="venoms" id="venoms"></div>
+    <div class="note" id="venomNote"></div>
+
+    <div class="lbl">SP doplnky</div>
+    <div class="extras" id="extras"></div>
+    <div class="ex-foot">
+      <button class="btn btn-g btn-sm" id="addExtra">＋ Vlastný doplnok</button>
+      <span>Ceny sú editovateľné · na doplnky sa uplatňuje bazárová návratnosť</span>
+    </div>
+  </section>
+</div>
+
+<!-- 3. VYHODNOTENIE -->
+<aside class="col side">
+  <section class="card rth">
+    <div class="hero">
+      <div class="k"><span>Reálna trhová hodnota</span><span id="heroName"></span></div>
+      <div class="big" id="rthFt">0 <small>Ft</small></div>
+      <div class="eq"><span class="gem" id="rthGem">◆ 0</span><span class="sp" id="rthSp">0 SP</span></div>
+      <div class="stack" id="stack"></div>
+    </div>
+    <div class="lines">
+      <div class="ln"><i style="background:var(--amber)"></i><div class="l">Základ auta<small id="nBase"></small></div><div class="v" id="vBase"></div></div>
+      <div class="ln"><i style="background:var(--cyan)"></i><div class="l">Tuning a doplnky<small id="nTune"></small></div><div class="v" id="vTune"></div></div>
+      <div class="ln"><i style="background:var(--violet)"></i><div class="l">Zberateľský bonus<small>v plnej výške</small></div><div class="v" id="vBonus"></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="ch"><div class="n">3</div><div><h2>Vyhodnotenie obchodu</h2><p>Koľko pýta predajca oproti RTH.</p></div></div>
+    <div class="field">
+      <span class="t">Cena, ktorú pýta predajca</span>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+        <div class="in"><input class="num" id="ask" data-def="0" placeholder="0"><span class="u" id="askUnit">Ft</span></div>
+        <div class="seg" id="askCur"><button data-v="ft">Ft</button><button data-v="gem">◆ Smaragd</button></div>
+      </div>
+      <span class="h" id="askConv"></span>
+    </div>
+
+    <div class="verdict empty" id="verdict">
+      <div class="light" id="light"><i></i><i></i><i></i><i></i></div>
+      <div><div class="vt" id="vTitle">Zadaj cenu predajcu</div><div class="vp" id="vPct"></div><div class="vd" id="vDesc">Semafor porovná ponuku s reálnou trhovou hodnotou.</div></div>
+    </div>
+
+    <div class="gauge" id="gauge">
+      <div class="gbar">
+        <div style="flex:10;background:var(--g)"></div><div style="flex:15;background:var(--y)"></div><div style="flex:15;background:var(--o)"></div><div style="flex:10;background:var(--r)"></div>
+      </div>
+      <div class="gzero" style="left:40%">RTH</div>
+      <div class="gmark" id="gmark" style="left:40%;display:none"></div>
+    </div>
+
+    <div class="bands" id="bands"></div>
+    <div class="build" id="build"></div>
+  </section>
+</aside>
+</main>
+<footer>Všetky hodnoty sa ukladajú v tomto prehliadači (localStorage). Ceny doplnkov si over a uprav podľa aktuálneho servera.</footer>
+
+<script>
+(function(){
+  const KEY='seerpgOcenovanie.v1';
+  const $=id=>document.getElementById(id);
+  const fmt=n=>isFinite(n)?Math.round(n).toLocaleString('sk-SK'):'–';
+  const fmt2=n=>isFinite(n)?n.toLocaleString('sk-SK',{maximumFractionDigits:2}):'–';
+  const fmtIn=n=>n.toLocaleString('sk-SK',{maximumFractionDigits:2});
+  const parse=v=>{const n=parseFloat(String(v).replace(/\s| /g,'').replace(',','.'));return isNaN(n)?0:n;};
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const sign=n=>(n>0?'+':n<0?'−':'')+fmt(Math.abs(n));
+
+  const DEF_EXTRAS=[
+    ['Custom ECU',800],['Backfire',500],['Exkluzív radar',2400],['Egyedi duda',1800],['Színváltó neon',2000],
+    ['Pure black fólie',1000],['LED svetlá',400],['Kerék matrica',300],['Paintjob',1000],['Egyedi rendszám',600]
+  ].map(([name,sp])=>({name,sp,on:false}));
+  const CAL=['refFt','refSp','rate','venomSp','gemFt','ret','kOpen','kSold','kRare'];
+  const CAR=['basePrice','bonus','ask'];
+  const ALL=CAL.concat(CAR);
+  const clone=o=>JSON.parse(JSON.stringify(o));
+  let st={mode:'open',venoms:0,extras:clone(DEF_EXTRAS),askCur:'ft',carName:'',calOpen:true};
+
+  function setVal(el,v){if(el.type==='range')el.value=v;else{const n=parse(v);el.value=n?fmtIn(n):(el.dataset.def==='0'?'':'0');}}
+  function load(){
+    let d=null;try{d=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
+    ALL.forEach(id=>setVal($(id),d&&d.v&&d.v[id]!=null?d.v[id]:$(id).dataset.def));
+    if(d&&d.st)Object.assign(st,d.st);
+    $('carName').value=st.carName||'';
+  }
+  let tS,first=true;
+  function save(){
+    const v={};ALL.forEach(id=>v[id]=parse($(id).value));
+    try{localStorage.setItem(KEY,JSON.stringify({v,st}));
+      if(!first){$('savedMsg').classList.add('show');clearTimeout(tS);tS=setTimeout(()=>$('savedMsg').classList.remove('show'),900);}
+    }catch(e){}
+    first=false;
+  }
+  function bindNum(el,cb){
+    el.setAttribute('inputmode','decimal');el.autocomplete='off';
+    el.addEventListener('input',cb);
+    el.addEventListener('blur',()=>{const n=parse(el.value);el.value=n?fmtIn(n):'';});
+    el.addEventListener('focus',()=>el.select());
+  }
+
+  function buildVenoms(){
+    const w=$('venoms');w.innerHTML='';
+    for(let i=0;i<=8;i++){const b=document.createElement('button');b.textContent=i;
+      b.className=i===st.venoms?'on':(i>0&&i<st.venoms?'lit':'');
+      b.onclick=()=>{st.venoms=i;buildVenoms();calc();};w.appendChild(b);}
+  }
+  function buildExtras(){
+    const w=$('extras');w.innerHTML='';
+    st.extras.forEach((x,i)=>{
+      const r=document.createElement('div');r.className='ex'+(x.on?' on':'');
+      r.innerHTML=`<input type="checkbox" class="sw" ${x.on?'checked':''}><input class="name" value="${esc(x.name)}">
+        <div class="in"><input class="num" value="${x.sp?fmtIn(x.sp):''}" placeholder="0"><span class="u">SP</span></div><button class="x" title="Odstrániť">×</button>`;
+      const cb=r.querySelector('.sw'),nm=r.querySelector('.name'),val=r.querySelector('.num');
+      const paint=()=>r.classList.toggle('on',x.on);
+      cb.onchange=()=>{x.on=cb.checked;paint();calc();};
+      nm.oninput=()=>{x.name=nm.value;save();};
+      bindNum(val,()=>{x.sp=parse(val.value);calc();});
+      r.querySelector('.x').onclick=()=>{st.extras.splice(i,1);buildExtras();calc();};
+      w.appendChild(r);
+    });
+  }
+  function paintModes(){document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('on',b.dataset.v===st.mode));}
+  function paintCur(){$('askCur').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===st.askCur));}
+
+  const BANDS=[
+    {k:'g',name:'Výhodná kúpa',lo:-Infinity,hi:-10,col:'var(--g)',desc:'Pod trhovou hodnotou – kupuj.'},
+    {k:'y',name:'Férová cena',lo:-10,hi:5,col:'var(--y)',desc:'Zodpovedá trhu.'},
+    {k:'o',name:'Priestor na zjednávanie',lo:5,hi:20,col:'var(--o)',desc:'Mierne predražené – zjednávaj.'},
+    {k:'r',name:'Prestrelené',lo:20,hi:Infinity,col:'var(--r)',desc:'Výrazne nad trhovou hodnotou.'}
+  ];
+
+  function calc(){
+    const rate=parse($('rate').value),venomSp=parse($('venomSp').value),gem=parse($('gemFt').value);
+    const ret=+$('ret').value/100;
+    const K={open:parse($('kOpen').value)/100,sold:parse($('kSold').value)/100,rare:parse($('kRare').value)/100};
+    const toSp=ft=>rate>0?ft/rate:NaN, toGem=ft=>gem>0?ft/gem:NaN;
+    const r=$('ret');r.style.setProperty('--p',((r.value-r.min)/(r.max-r.min)*100)+'%');
+    $('retV').textContent=r.value+' %';
+    $('mOpen').textContent=fmt2(K.open*100)+' %';$('mSold').textContent=fmt2(K.sold*100)+' %';$('mRare').textContent=fmt2(K.rare*100)+' %';
+    $('hRate').textContent=fmt2(rate)+' Ft/SP';$('hGem').textContent=fmt(gem)+' Ft';
+    const rf=parse($('refFt').value),rs=parse($('refSp').value);
+    $('refRate').textContent=rs>0?fmt2(rf/rs):'–';
+
+    // základ
+    const bp=parse($('basePrice').value),coef=K[st.mode];
+    $('baseLbl').textContent=st.mode==='rare'?'Najlacnejší kus na trhu':'Autosalónová cena';
+    $('baseConv').textContent=bp?`≈ ${fmt(toSp(bp))} SP · ◆ ${fmt2(toGem(bp))}`:'';
+    const baseVal=bp*coef;
+    const modeTxt={open:'jazdený základ',sold:'limitovaný základ',rare:'trhová podlaha'}[st.mode];
+    $('nBase').textContent=bp?`${fmt(bp)} Ft × ${fmt2(coef*100)} % · ${modeTxt}`:'zadaj cenu základu';
+
+    // tuning
+    const venomSpSum=st.venoms*venomSp;
+    let exSp=0,exN=0;st.extras.forEach(x=>{if(x.on&&x.sp>0){exSp+=x.sp;exN++;}});
+    const tuneSp=venomSpSum+exSp,tuneFull=tuneSp*rate,tuneVal=tuneFull*ret;
+    $('venomNote').innerHTML=st.venoms?`<b>${st.venoms}× Venom</b> = <b>${fmt(venomSpSum)} SP</b> · ${fmt(venomSpSum*rate)} Ft pred návratnosťou`:'Bez Venom dielov';
+    $('nTune').textContent=tuneSp?`${fmt(tuneSp)} SP (${fmt(tuneFull)} Ft) × ${Math.round(ret*100)} % · ${st.venoms}× Venom, ${exN} dopl.`:'bez tuningu';
+
+    const bonus=parse($('bonus').value),rth=baseVal+tuneVal+bonus;
+    const show=(id,ft)=>$(id).innerHTML=`${fmt(ft)} Ft<small>◆ ${fmt2(toGem(ft))} · ${fmt(toSp(ft))} SP</small>`;
+    show('vBase',baseVal);show('vTune',tuneVal);show('vBonus',bonus);
+    $('rthFt').innerHTML=fmt(rth)+' <small>Ft</small>';
+    $('rthGem').textContent='◆ '+fmt2(toGem(rth))+' Smaragd';
+    $('rthSp').textContent='≈ '+fmt(toSp(rth))+' SP';
+    $('heroName').textContent=st.carName||'';
+    $('stack').innerHTML=rth>0?[[baseVal,'amber'],[tuneVal,'cyan'],[bonus,'violet']].map(([v,c])=>`<div style="width:${v/rth*100}%;background:var(--${c})"></div>`).join(''):'';
+
+    // obchod
+    const askRaw=parse($('ask').value),askFt=st.askCur==='gem'?askRaw*gem:askRaw;
+    $('askUnit').textContent=st.askCur==='gem'?'◆':'Ft';
+    $('askConv').textContent=askRaw?(st.askCur==='gem'?`= ${fmt(askFt)} Ft · ${fmt(toSp(askFt))} SP`:`= ◆ ${fmt2(toGem(askFt))} Smaragd · ${fmt(toSp(askFt))} SP`):'';
+
+    $('bands').innerHTML=BANDS.map(b=>{
+      const lo=isFinite(b.lo)?rth*(1+b.lo/100):null,hi=isFinite(b.hi)?rth*(1+b.hi/100):null;
+      const pr=b.lo===-Infinity?`pod ${b.hi} %`:b.hi===Infinity?`nad +${b.lo} %`:`${b.lo>0?'+':''}${b.lo} % až +${b.hi} %`;
+      const rg=rth>0?(lo==null?`< ${fmt(hi)}`:hi==null?`> ${fmt(lo)}`:`${fmt(lo)} – ${fmt(hi)}`):'–';
+      return `<div class="band" data-k="${b.k}" style="color:${b.col}"><i style="background:${b.col}"></i><div class="bn"><span>${b.name}</span><small>${pr}</small></div><div class="br">${rg} Ft</div></div>`;
+    }).join('');
+
+    const v=$('verdict'),lights=$('light').querySelectorAll('i'),mk=$('gmark');
+    lights.forEach(l=>l.classList.remove('on'));
+    if(askFt>0&&rth>0){
+      const diff=askFt-rth,pct=diff/rth*100;
+      const idx=pct<-10?0:pct<=5?1:pct<=20?2:3,b=BANDS[idx];
+      lights[idx].classList.add('on');v.classList.remove('empty');
+      v.style.borderColor=b.col;v.style.background=`color-mix(in srgb, ${b.col} 8%, transparent)`;
+      $('vTitle').textContent=b.name;$('vTitle').style.color=b.col;
+      $('vPct').textContent=`${pct>=0?'+':'−'}${fmt2(Math.abs(Math.round(pct*10)/10))} % oproti RTH`;$('vPct').style.color=b.col;
+      $('vDesc').innerHTML=diff<0?`Ušetríš <b>${fmt(-diff)} Ft</b> (◆ ${fmt2(toGem(-diff))}) oproti reálnej hodnote. ${b.desc}`
+        :diff>0?`Preplatíš <b>${fmt(diff)} Ft</b> (◆ ${fmt2(toGem(diff))}) oproti reálnej hodnote. ${b.desc}`:`Presne na reálnej hodnote.`;
+      document.querySelector(`.band[data-k="${b.k}"]`).classList.add('act');
+      // gauge −20 % .. +30 %
+      const pos=Math.max(0,Math.min(100,(pct+20)/50*100));
+      mk.style.display='';mk.style.left=pos+'%';mk.dataset.l=(pct>=0?'+':'')+Math.round(pct)+' %';
+    }else{
+      v.classList.add('empty');v.style.borderColor='';v.style.background='';
+      $('vTitle').textContent=rth>0?'Zadaj cenu predajcu':'Najprv nakonfiguruj auto';$('vTitle').style.color='';
+      $('vPct').textContent='';$('vDesc').textContent='Semafor porovná ponuku s reálnou trhovou hodnotou.';mk.style.display='none';
+    }
+
+    // vlastná stavba
+    const buildCost=bp+tuneFull;
+    let h=`<div>Vlastná stavba zo základu: <b>${fmt(buildCost)} Ft</b> <span style="color:var(--dim)">(${st.mode==='rare'?'najlacnejší kus':'autosalón'} ${fmt(bp)} + tuning ${fmt(tuneFull)} Ft v plnej SP cene)</span></div>`;
+    if(askFt>0&&bp>0){const d=buildCost-askFt;
+      h+=`<div style="margin-top:6px">${d>=0?`<span class="pos">Kúpou ušetríš <b>${fmt(d)} Ft</b></span> (◆ ${fmt2(toGem(d))}) oproti tomu, keby si si ho postavil sám.`:`<span class="neg">Kúpou preplatíš <b>${fmt(-d)} Ft</b></span> (◆ ${fmt2(toGem(-d))}) oproti vlastnej stavbe.`}</div>`;
+      if(st.mode==='sold')h+=`<div style="margin-top:6px;color:var(--dim)">Pozor: auto je vypredané – v salóne ho už kúpiť nejde.</div>`;
+    }
+    $('build').innerHTML=bp>0?h:'<span style="color:var(--dim)">Porovnanie s vlastnou stavbou sa zobrazí po zadaní ceny základu.</span>';
+
+    save();
+  }
+
+  // init
+  load();
+  ALL.forEach(id=>{const el=$(id);if(el.type==='range')el.addEventListener('input',calc);else bindNum(el,calc);});
+  $('carName').addEventListener('input',e=>{st.carName=e.target.value;calc();});
+  document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{st.mode=b.dataset.v;paintModes();calc();});
+  $('askCur').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.v===st.askCur)return;
+    const gem=parse($('gemFt').value),v=parse($('ask').value);
+    if(v&&gem>0)$('ask').value=fmtIn(b.dataset.v==='gem'?Math.round(v/gem*100)/100:Math.round(v*gem));
+    st.askCur=b.dataset.v;paintCur();calc();
+  });
+  $('applyRef').onclick=()=>{const rf=parse($('refFt').value),rs=parse($('refSp').value);
+    if(rs>0){$('rate').value=fmtIn(Math.round(rf/rs*100)/100);calc();const b=$('applyRef');b.textContent='✓ Kurz použitý';setTimeout(()=>b.textContent='Použiť kurz',1300);}};
+  $('resetCal').onclick=()=>{if(!confirm('Obnoviť kalibráciu na predvolené hodnoty?'))return;CAL.forEach(id=>setVal($(id),$(id).dataset.def));calc();};
+  $('resetCar').onclick=()=>{if(!confirm('Vymazať aktuálne auto a začať nové?'))return;
+    CAR.forEach(id=>$(id).value='');st.carName='';$('carName').value='';st.venoms=0;st.extras.forEach(x=>x.on=false);
+    buildVenoms();buildExtras();calc();};
+  $('addExtra').onclick=()=>{st.extras.push({name:'Nový doplnok',sp:0,on:true});buildExtras();calc();};
+  const cc=$('calCard');cc.open=st.calOpen!==false;cc.addEventListener('toggle',()=>{st.calOpen=cc.open;save();});
+  paintModes();paintCur();buildVenoms();buildExtras();calc();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalkulačka SP – SeeRPG v4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07090d;
+    --surface:rgba(22,26,36,.72);
+    --surface-2:rgba(255,255,255,.035);
+    --surface-3:rgba(255,255,255,.06);
+    --border:rgba(255,255,255,.07);
+    --border-2:rgba(255,255,255,.12);
+    --text:#eef1f7; --muted:#8a93a8; --dim:#5d6578;
+    --amber:#ffb547; --orange:#ff7a3d; --cyan:#3dd6ff; --violet:#8b7bff; --green:#3ee08f; --red:#ff6b7a;
+    --grad:linear-gradient(135deg,var(--amber),var(--orange));
+    --r-lg:20px; --r-md:14px; --r-sm:10px;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html{color-scheme:dark}
+  body{
+    margin:0;min-height:100vh;color:var(--text);
+    font:14.5px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:
+      radial-gradient(900px 500px at 8% -10%,rgba(255,140,60,.13),transparent 60%),
+      radial-gradient(800px 600px at 100% 0%,rgba(61,214,255,.09),transparent 55%),
+      radial-gradient(700px 500px at 50% 110%,rgba(139,123,255,.08),transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+    background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:44px 44px;mask-image:radial-gradient(ellipse at top,#000 20%,transparent 75%)}
+  .num-f{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    background:rgba(7,9,13,.65);border-bottom:1px solid var(--border)}
+  .hdr{max-width:1320px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;gap:14px}
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;
+    font-weight:800;color:#1a0f00;font-size:15px;box-shadow:0 6px 24px -6px rgba(255,140,60,.6)}
+  .brand h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.2px}
+  .brand p{margin:0;font-size:12px;color:var(--muted)}
+  .chip{margin-left:auto;display:flex;align-items:center;gap:10px;padding:7px 14px 7px 10px;border-radius:99px;
+    background:var(--surface-2);border:1px solid var(--border)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(62,224,143,.15)}
+  .chip span{font-size:12px;color:var(--muted)}
+  .chip b{font-family:var(--mono);font-size:14px}
+  .saved{font-size:12px;color:var(--green);opacity:0;transform:translateY(2px);transition:.3s}
+  .saved.show{opacity:1;transform:none}
+
+  /* ---------- layout ---------- */
+  main{max-width:1320px;margin:0 auto;padding:26px 28px 40px;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+  @media (max-width:1080px){main{grid-template-columns:1fr;padding:18px}}
+  .col{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .side{position:sticky;top:86px}
+  @media (max-width:1080px){.side{position:static}}
+
+  .card{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+    padding:22px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 20px 50px -30px rgba(0,0,0,.8)}
+  .card-h{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .card-h .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--surface-3);border:1px solid var(--border);font-size:16px}
+  .card-h h2{margin:0;font-size:16px;font-weight:650;letter-spacing:-.2px}
+  .card-h p{margin:1px 0 0;font-size:12.5px;color:var(--muted)}
+  .card-h .act{margin-left:auto}
+  .label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin:22px 0 10px;display:flex;align-items:center;gap:10px}
+  .label::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  details.card>summary{list-style:none;cursor:pointer}
+  details.card>summary::-webkit-details-marker{display:none}
+  details.card>summary .card-h{margin-bottom:0}
+  details.card[open]>summary .card-h{margin-bottom:18px}
+  .chev{transition:transform .25s;color:var(--muted)}
+  details[open] .chev{transform:rotate(180deg)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:640px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  /* ---------- inputs ---------- */
+  .field{display:flex;flex-direction:column;gap:7px}
+  .field>.t{font-size:12.5px;color:var(--muted);font-weight:500}
+  .field>.h{font-size:12px;color:var(--dim);min-height:16px}
+  .in{display:flex;align-items:center;background:rgba(0,0,0,.28);border:1px solid var(--border-2);border-radius:var(--r-sm);transition:.2s}
+  .in:hover{border-color:rgba(255,255,255,.18)}
+  .in:focus-within{border-color:var(--amber);box-shadow:0 0 0 4px rgba(255,181,71,.12)}
+  .in input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:var(--text);padding:11px 13px;font:600 15px var(--mono);letter-spacing:-.3px}
+  .in input::placeholder{color:var(--dim)}
+  .in .u{padding:0 12px;font-size:12px;font-weight:600;color:var(--muted)}
+  .in select{appearance:none;background:var(--surface-3);border:0;border-left:1px solid var(--border);color:var(--text);
+    font:600 12px Inter;padding:0 12px;align-self:stretch;cursor:pointer;border-radius:0 var(--r-sm) var(--r-sm) 0}
+  .in select:focus{outline:none}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;font:600 13.5px Inter;border-radius:var(--r-sm);padding:10px 16px;transition:.2s}
+  .btn-p{background:var(--grad);color:#1a0f00;box-shadow:0 8px 22px -10px rgba(255,140,60,.8)}
+  .btn-p:hover{transform:translateY(-1px);box-shadow:0 12px 26px -10px rgba(255,140,60,.9)}
+  .btn-g{background:var(--surface-2);color:var(--text);border:1px solid var(--border-2)}
+  .btn-g:hover{background:var(--surface-3)}
+  .btn-sm{padding:7px 12px;font-size:12.5px}
+
+  /* ref box */
+  .ref{border-radius:var(--r-md);padding:16px;background:linear-gradient(135deg,rgba(61,214,255,.07),rgba(139,123,255,.05));border:1px solid rgba(61,214,255,.15)}
+  .ref-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .ref-foot .res{font-size:13px;color:var(--muted)}
+  .ref-foot .res b{font:700 18px var(--mono);color:var(--cyan);margin:0 4px}
+
+  /* sliders */
+  .sl{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 14px 12px}
+  .sl .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+  .sl .top span{font-size:12.5px;color:var(--muted);font-weight:500}
+  .sl .top b{font:700 15px var(--mono);color:var(--amber)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;margin:0;cursor:pointer;
+    background:linear-gradient(90deg,var(--amber),var(--orange)) 0/var(--p,50%) 100% no-repeat,rgba(255,255,255,.08)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--orange);box-shadow:0 2px 10px rgba(0,0,0,.5);transition:transform .15s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:4px solid var(--orange)}
+  .sl .scale{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:7px;font-family:var(--mono)}
+
+  /* segmented */
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:12px}
+  .seg button{border:0;background:transparent;color:var(--muted);font:600 13px Inter;padding:10px 12px;border-radius:9px;cursor:pointer;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .seg button small{font-weight:500;font-size:11px;color:var(--dim)}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:var(--surface-3);color:var(--text);box-shadow:inset 0 0 0 1px rgba(255,181,71,.45),0 4px 14px -6px rgba(0,0,0,.6)}
+  .seg button.on small{color:var(--amber)}
+
+  /* venoms */
+  .venoms{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+  .venoms button{aspect-ratio:1;max-height:52px;border-radius:11px;border:1px solid var(--border-2);background:rgba(0,0,0,.25);color:var(--muted);
+    font:700 15px var(--mono);cursor:pointer;transition:.15s}
+  .venoms button:hover{border-color:var(--amber);color:var(--text)}
+  .venoms button.lit{background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.35);color:var(--amber)}
+  .venoms button.on{background:var(--grad);border-color:transparent;color:#1a0f00;box-shadow:0 6px 18px -6px rgba(255,140,60,.8)}
+  .venom-note{margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .venom-note b{color:var(--text);font-family:var(--mono)}
+
+  /* extras */
+  .extras{display:flex;flex-direction:column;gap:8px}
+  .ex{display:grid;grid-template-columns:auto 1fr 200px auto;align-items:center;gap:12px;padding:8px 8px 8px 14px;border-radius:12px;
+    background:var(--surface-2);border:1px solid var(--border);transition:.2s}
+  .ex.on{border-color:rgba(255,181,71,.3);background:rgba(255,181,71,.05)}
+  .ex .name{background:transparent;border:0;outline:none;color:var(--text);font:500 14px Inter;min-width:0}
+  .ex .in input{padding:8px 10px;font-size:14px}
+  @media (max-width:640px){.ex{grid-template-columns:auto 1fr auto}.ex .in{grid-column:1/-1}}
+  .sw{appearance:none;-webkit-appearance:none;width:38px;height:22px;border-radius:99px;background:rgba(255,255,255,.12);position:relative;cursor:pointer;transition:.2s;margin:0;flex:none}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+  .sw:checked{background:var(--grad)}
+  .sw:checked::after{left:19px}
+  .x{width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--dim);cursor:pointer;font-size:18px;transition:.15s}
+  .x:hover{background:rgba(255,107,122,.12);color:var(--red)}
+  .ex-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
+
+  /* ---------- result ---------- */
+  .result{padding:0;overflow:hidden}
+  .hero{padding:24px 22px 20px;position:relative;
+    background:radial-gradient(600px 200px at 0% 0%,rgba(255,140,60,.18),transparent 70%),radial-gradient(400px 200px at 100% 100%,rgba(61,214,255,.1),transparent 70%)}
+  .hero .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .hero .big{font:800 36px/1.1 var(--mono);letter-spacing:-1.5px;margin:8px 0 4px;
+    background:linear-gradient(135deg,#fff 30%,var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent;word-break:break-all}
+  .hero .big small{font-size:18px;letter-spacing:0}
+  .hero .sp{font:600 14px var(--mono);color:var(--cyan)}
+  .stack{display:flex;height:10px;border-radius:99px;overflow:hidden;margin-top:18px;background:rgba(255,255,255,.06);gap:2px}
+  .stack div{height:100%;transition:width .4s cubic-bezier(.2,.8,.2,1)}
+  .stack div:first-child{border-radius:99px 0 0 99px}
+  .lines{padding:6px 22px 4px;border-top:1px solid var(--border)}
+  .ln{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .ln:last-child{border-bottom:0}
+  .ln i{width:10px;height:10px;border-radius:3px}
+  .ln .l{font-size:13.5px;font-weight:500}
+  .ln .l small{display:block;color:var(--dim);font-size:11.5px;font-weight:400;margin-top:1px}
+  .ln .v{text-align:right;font:700 14px var(--mono);white-space:nowrap}
+  .ln .v small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+
+  .range{padding:18px 22px 22px;border-top:1px solid var(--border);background:rgba(0,0,0,.18)}
+  .range .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px}
+  .rtrack{position:relative;height:6px;border-radius:99px;margin:6px 6px 16px;background:linear-gradient(90deg,var(--red),var(--amber) 50%,var(--green))}
+  .rtrack span{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--bg);border:3px solid;transform:translate(-50%,-50%)}
+  .rboxes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .rb{padding:11px 10px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);text-align:center}
+  .rb .t{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .rb .ft{font:700 14.5px var(--mono);margin:5px 0 1px;letter-spacing:-.5px}
+  .rb .s{font:500 11.5px var(--mono);color:var(--dim)}
+  .rb.min .ft{color:var(--red)} .rb.max .ft{color:var(--green)}
+  .rb.ideal{background:rgba(255,181,71,.08);border-color:rgba(255,181,71,.35)} .rb.ideal .ft{color:var(--amber)}
+
+  /* converter */
+  .conv{display:flex;flex-direction:column;gap:6px}
+  .swap{display:flex;align-items:center;gap:10px;margin:2px 0;color:var(--dim);font-size:12px}
+  .swap::before,.swap::after{content:"";flex:1;height:1px;background:var(--border)}
+  .swap b{font-family:var(--mono);color:var(--amber);font-weight:600}
+  .quick{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px}
+  .q{padding:9px 11px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;transition:.15s;text-align:left;color:var(--text)}
+  .q:hover{border-color:rgba(61,214,255,.35)}
+  .q .a{font:600 12px var(--mono);color:var(--cyan)}
+  .q .b{font:700 13px var(--mono);margin-top:2px}
+
+  footer{text-align:center;color:var(--dim);font-size:12px;padding:0 0 34px}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <div class="logo">SP</div>
+    <div class="brand"><h1>Kalkulačka SP</h1><p>SeeRPG v4 · trhová cena vozidiel</p></div>
+    <span class="saved" id="savedMsg">✓ Uložené</span>
+    <div class="chip"><i class="dot"></i><span>Kurz</span><b id="hdrRate">–</b></div>
+  </div>
+</header>
+
+<main>
+<div class="col">
+
+  <!-- VOZIDLO -->
+  <section class="card">
+    <div class="card-h">
+      <div class="ic">🚗</div>
+      <div><h2>Kalkulačka vozidla</h2><p>Zadaj auto, tuning a doplnky – výsledok sa počíta okamžite.</p></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <span class="t">Typ ceny základu</span>
+        <div class="seg" id="baseType">
+          <button data-v="ft" class="on">IC peniaze<small>Ft</small></button>
+          <button data-v="sp">SeePointy<small>SP</small></button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="t">Stav limitu auta</span>
+        <div class="seg" id="limitState">
+          <button data-v="open" class="on">Dá sa kúpiť<small>nevypredané</small></button>
+          <button data-v="sold">Limit dosiahnutý<small>vypredané</small></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <label class="field"><span class="t" id="baseLbl">Autosalónová cena</span>
+        <div class="in"><input class="num" id="basePrice" data-def="0" placeholder="0"><span class="u" id="baseUnit">Ft</span></div>
+        <span class="h" id="baseConv"></span>
+      </label>
+      <label class="field"><span class="t">Zberateľská prirážka</span>
+        <div class="in"><input class="num" id="bonus" data-def="0" placeholder="0"><span class="u">Ft</span></div>
+        <span class="h">nízke alvázszám, A / B / C ŠPZ…</span>
+      </label>
+    </div>
+
+    <div class="label">Venom diely</div>
+    <div class="venoms" id="venoms"></div>
+    <div class="venom-note" id="venomNote"></div>
+
+    <div class="label">Doplnky</div>
+    <div class="extras" id="extras"></div>
+    <div class="ex-foot">
+      <button class="btn btn-g btn-sm" id="addExtra">＋ Pridať doplnok</button>
+      <span>Aj na doplnky sa uplatňuje návratnosť tuningov.</span>
+    </div>
+  </section>
+
+  <!-- KALIBRÁCIA -->
+  <details class="card" open id="calCard">
+    <summary>
+      <div class="card-h">
+        <div class="ic">⚙️</div>
+        <div><h2>Kalibrácia trhu</h2><p>Nastav podľa aktuálneho trhu – ukladá sa automaticky.</p></div>
+        <svg class="act chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </summary>
+
+    <div class="ref">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Kurz z referenčného predmetu</div>
+      <div class="grid2">
+        <label class="field"><span class="t">Cena v IC</span>
+          <div class="in"><input class="num" id="refFt" data-def="90000000"><span class="u">Ft</span></div>
+        </label>
+        <label class="field"><span class="t">Cena v SP</span>
+          <div class="in"><input class="num" id="refSp" data-def="12200"><span class="u">SP</span></div>
+        </label>
+      </div>
+      <div class="ref-foot">
+        <div class="res">Vypočítaný kurz<b id="refRate">–</b>Ft / SP</div>
+        <button class="btn btn-p" id="applyRef">Použiť tento kurz</button>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <label class="field"><span class="t">Manuálny kurz SP</span>
+        <div class="in"><input class="num" id="rate" data-def="7377"><span class="u">Ft / SP</span></div>
+      </label>
+      <label class="field"><span class="t">Cena 1× Venom</span>
+        <div class="in"><input class="num" id="venomSp" data-def="1400"><span class="u">SP</span></div>
+      </label>
+    </div>
+
+    <div class="label">Koeficienty</div>
+    <div class="grid3">
+      <div class="sl"><div class="top"><span>Návratnosť tuningov</span><b id="retV"></b></div>
+        <input type="range" id="ret" min="20" max="100" step="1" data-def="55"><div class="scale"><span>20 %</span><span>100 %</span></div></div>
+      <div class="sl"><div class="top"><span>Limitované auto</span><b id="limV"></b></div>
+        <input type="range" id="lim" min="50" max="300" step="5" data-def="100"><div class="scale"><span>50 %</span><span>300 %</span></div></div>
+      <div class="sl"><div class="top"><span>Jazdený základ</span><b id="usedV"></b></div>
+        <input type="range" id="used" min="70" max="100" step="1" data-def="92"><div class="scale"><span>70 %</span><span>100 %</span></div></div>
+    </div>
+
+    <div class="label">Predajné rozpätie</div>
+    <div class="grid2">
+      <div class="sl"><div class="top"><span>Minimálna férová cena</span><b id="minPV"></b></div>
+        <input type="range" id="minP" min="70" max="100" step="1" data-def="90"><div class="scale"><span>70 %</span><span>100 %</span></div></div>
+      <div class="sl"><div class="top"><span>Horný strop inzerátu</span><b id="maxPV"></b></div>
+        <input type="range" id="maxP" min="100" max="150" step="1" data-def="115"><div class="scale"><span>100 %</span><span>150 %</span></div></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-g btn-sm" id="resetCal">↺ Obnoviť predvolené</button>
+    </div>
+  </details>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="col side">
+  <section class="card result">
+    <div class="hero">
+      <div class="k">Reálna trhová hodnota</div>
+      <div class="big" id="heroFt">0 <small>Ft</small></div>
+      <div class="sp" id="heroSp">≈ 0 SP</div>
+      <div class="stack" id="bar"></div>
+    </div>
+    <div class="lines">
+      <div class="ln"><i style="background:var(--amber)"></i><div class="l">Základ auta<small id="bBaseNote"></small></div><div class="v" id="bBase"></div></div>
+      <div class="ln"><i style="background:var(--cyan)"></i><div class="l">Tuning po návratnosti<small id="bTuneNote"></small></div><div class="v" id="bTune"></div></div>
+      <div class="ln"><i style="background:var(--violet)"></i><div class="l">Zberateľský bonus<small>pripočítaný v plnej výške</small></div><div class="v" id="bBonus"></div></div>
+    </div>
+    <div class="range">
+      <div class="k">Odporúčané predajné rozpätie</div>
+      <div class="rtrack" id="rtrack">
+        <span style="left:0;border-color:var(--red)"></span>
+        <span id="rIdealDot" style="left:40%;border-color:var(--amber)"></span>
+        <span style="left:100%;border-color:var(--green)"></span>
+      </div>
+      <div class="rboxes">
+        <div class="rb min"><div class="t">Minimum</div><div class="ft" id="rMin"></div><div class="s" id="rMinSp"></div></div>
+        <div class="rb ideal"><div class="t">Ideálna</div><div class="ft" id="rIdeal"></div><div class="s" id="rIdealSp"></div></div>
+        <div class="rb max"><div class="t">Strop</div><div class="ft" id="rMax"></div><div class="s" id="rMaxSp"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <div class="ic">⇄</div>
+      <div><h2>Prevodník Ft ⇄ SP</h2><p>Píš do ľubovoľného poľa.</p></div>
+    </div>
+    <div class="conv">
+      <div class="in"><input class="num" id="cFt" placeholder="0"><span class="u">Ft</span></div>
+      <div class="swap">kurz <b id="cRate"></b></div>
+      <div class="in"><input class="num" id="cSp" placeholder="0"><span class="u">SP</span></div>
+    </div>
+    <div class="quick" id="quick"></div>
+  </section>
+</aside>
+</main>
+<footer>Kalibrácia, doplnky a posledné hodnoty sa ukladajú v tomto prehliadači.</footer>
+
+<script>
+(function(){
+  const KEY='kalkulackaSP.v1';
+  const $=id=>document.getElementById(id);
+  const fmt=n=>isFinite(n)?Math.round(n).toLocaleString('sk-SK'):'–';
+  const fmt2=n=>isFinite(n)?n.toLocaleString('sk-SK',{maximumFractionDigits:2}):'–';
+  const parse=v=>{const s=String(v).replace(/\s| /g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?0:n;};
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  const DEFAULT_EXTRAS=[
+    {name:'Backfire',on:false,val:500,cur:'sp'},
+    {name:'Custom ECU',on:false,val:800,cur:'sp'},
+    {name:'Rendszám (vlastná ŠPZ)',on:false,val:600,cur:'sp'},
+    {name:'Duda (klaksón)',on:false,val:300,cur:'sp'}
+  ];
+  const CAL_IDS=['refFt','refSp','rate','venomSp','ret','lim','used','minP','maxP'];
+  const ALL_IDS=CAL_IDS.concat(['basePrice','bonus']);
+  let state={baseType:'ft',limitState:'open',venoms:0,extras:JSON.parse(JSON.stringify(DEFAULT_EXTRAS)),calOpen:true};
+
+  const fmtInput=n=>n.toLocaleString('sk-SK',{maximumFractionDigits:2});
+  function setVal(el,v){
+    if(el.type==='range')el.value=v;
+    else{const n=parse(v);el.value=n?fmtInput(n):(el.dataset.def==='0'?'':'0');}
+  }
+  function load(){
+    let d=null;
+    try{d=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){}
+    ALL_IDS.forEach(id=>{const el=$(id);setVal(el,d&&d.cal&&d.cal[id]!=null?d.cal[id]:el.dataset.def);});
+    if(d&&d.state)Object.assign(state,d.state);
+  }
+  let saveT,first=true;
+  function save(){
+    const cal={};ALL_IDS.forEach(id=>cal[id]=parse($(id).value));
+    try{localStorage.setItem(KEY,JSON.stringify({cal,state}));
+      if(!first){const m=$('savedMsg');m.classList.add('show');clearTimeout(saveT);saveT=setTimeout(()=>m.classList.remove('show'),1000);}
+    }catch(e){}
+    first=false;
+  }
+  function bindNum(el,cb){
+    el.setAttribute('inputmode','decimal');el.autocomplete='off';
+    el.addEventListener('input',cb);
+    el.addEventListener('blur',()=>{const n=parse(el.value);el.value=n?fmtInput(n):'';});
+    el.addEventListener('focus',()=>el.select());
+  }
+  const fill=el=>el.style.setProperty('--p',((el.value-el.min)/(el.max-el.min)*100)+'%');
+
+  function buildVenoms(){
+    const w=$('venoms');w.innerHTML='';
+    for(let i=0;i<=8;i++){const b=document.createElement('button');b.textContent=i;
+      b.className=i===state.venoms?'on':(i>0&&i<state.venoms?'lit':'');
+      b.onclick=()=>{state.venoms=i;buildVenoms();calc();};w.appendChild(b);}
+  }
+  function buildExtras(){
+    const t=$('extras');t.innerHTML='';
+    state.extras.forEach((x,i)=>{
+      const r=document.createElement('div');r.className='ex'+(x.on?' on':'');
+      r.innerHTML=`<input type="checkbox" class="sw" ${x.on?'checked':''}>
+        <input type="text" class="name" value="${esc(x.name)}">
+        <div class="in"><input class="num" value="${x.val?fmtInput(x.val):''}" placeholder="0">
+          <select><option value="sp"${x.cur==='sp'?' selected':''}>SP</option><option value="ft"${x.cur==='ft'?' selected':''}>Ft</option></select></div>
+        <button class="x" title="Odstrániť">×</button>`;
+      const cb=r.querySelector('.sw'),name=r.querySelector('.name'),val=r.querySelector('.num'),sel=r.querySelector('select'),del=r.querySelector('.x');
+      const paint=()=>r.classList.toggle('on',x.on);
+      cb.onchange=()=>{x.on=cb.checked;paint();calc();};
+      name.oninput=()=>{x.name=name.value;save();};
+      bindNum(val,()=>{x.val=parse(val.value);if(x.val>0&&!x.on){x.on=true;cb.checked=true;paint();}calc();});
+      sel.onchange=()=>{x.cur=sel.value;calc();};
+      del.onclick=()=>{state.extras.splice(i,1);buildExtras();calc();};
+      t.appendChild(r);
+    });
+  }
+  function seg(id,key){
+    const s=$(id);
+    const paint=()=>s.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===state[key]));
+    s.querySelectorAll('button').forEach(b=>b.onclick=()=>{state[key]=b.dataset.v;paint();calc();});
+    paint();
+  }
+
+  const rate=()=>parse($('rate').value);
+  const toSp=ft=>{const r=rate();return r>0?ft/r:NaN;};
+
+  function calc(){
+    const r=rate(),venomSp=parse($('venomSp').value);
+    const ret=+$('ret').value/100,lim=+$('lim').value/100,used=+$('used').value/100;
+    const minP=+$('minP').value/100,maxP=+$('maxP').value/100;
+    document.querySelectorAll('input[type=range]').forEach(fill);
+    [['retV',ret],['limV',lim],['usedV',used],['minPV',minP],['maxPV',maxP]].forEach(([id,v])=>$(id).textContent=Math.round(v*100)+' %');
+    $('hdrRate').textContent=fmt2(r)+' Ft/SP';
+    $('cRate').textContent=fmt2(r)+' Ft / SP';
+
+    const rf=parse($('refFt').value),rs=parse($('refSp').value);
+    $('refRate').textContent=rs>0?fmt2(rf/rs):'–';
+
+    const bp=parse($('basePrice').value),isSp=state.baseType==='sp';
+    $('baseUnit').textContent=isSp?'SP':'Ft';
+    $('baseLbl').textContent=isSp?'Cena auta v SP':'Autosalónová cena';
+    const baseFt=isSp?bp*r:bp;
+    $('baseConv').textContent=bp?(isSp?'= '+fmt(baseFt)+' Ft':'≈ '+fmt(toSp(baseFt))+' SP'):'';
+    const sold=state.limitState==='sold',coef=sold?lim:used,baseVal=baseFt*coef;
+    $('bBaseNote').textContent=bp?`${fmt(baseFt)} Ft × ${Math.round(coef*100)} % · ${sold?'limitované':'jazdené'}`:'zadaj cenu auta';
+
+    const venomFt=state.venoms*venomSp*r;
+    $('venomNote').innerHTML=state.venoms?`<b>${state.venoms}× Venom</b> = <b>${fmt(state.venoms*venomSp)} SP</b> · ${fmt(venomFt)} Ft pred návratnosťou`:'Bez Venom dielov';
+    let extrasFt=0,n=0;
+    state.extras.forEach(x=>{if(x.on&&x.val>0){extrasFt+=x.cur==='sp'?x.val*r:x.val;n++;}});
+    const tuneRaw=venomFt+extrasFt,tuneVal=tuneRaw*ret;
+    $('bTuneNote').textContent=tuneRaw?`${fmt(tuneRaw)} Ft × ${Math.round(ret*100)} % · ${state.venoms}× Venom, ${n} dopl.`:'bez tuningu';
+
+    const bonus=parse($('bonus').value),total=baseVal+tuneVal+bonus;
+    const show=(id,ft)=>{$(id).innerHTML=fmt(ft)+' Ft<small>≈ '+fmt(toSp(ft))+' SP</small>';};
+    show('bBase',baseVal);show('bTune',tuneVal);show('bBonus',bonus);
+    $('heroFt').innerHTML=fmt(total)+' <small>Ft</small>';
+    $('heroSp').textContent='≈ '+fmt(toSp(total))+' SP';
+    $('bar').innerHTML=total>0?`<div style="width:${baseVal/total*100}%;background:var(--amber)"></div><div style="width:${tuneVal/total*100}%;background:var(--cyan)"></div><div style="width:${bonus/total*100}%;background:var(--violet)"></div>`:'';
+
+    [['rMin',total*minP],['rIdeal',total],['rMax',total*maxP]].forEach(([id,v])=>{$(id).textContent=fmt(v);$(id+'Sp').textContent=fmt(toSp(v))+' SP';});
+    $('rIdealDot').style.left=((1-minP)/(maxP-minP||1)*100)+'%';
+
+    const q=[100,1000,venomSp||1400,5000,10000,50000];
+    $('quick').innerHTML=q.map(sp=>`<button class="q" data-sp="${sp}"><div class="a">${fmt(sp)} SP</div><div class="b">${fmt(sp*r)} Ft</div></button>`).join('');
+    $('quick').querySelectorAll('.q').forEach(b=>b.onclick=()=>{$('cSp').value=fmtInput(+b.dataset.sp);convFrom('sp');});
+
+    convFrom(lastConv);
+    save();
+  }
+
+  let lastConv='ft';
+  function convFrom(src){
+    const r=rate();lastConv=src;
+    if(src==='ft'){const v=parse($('cFt').value);if(document.activeElement!==$('cSp'))$('cSp').value=v&&r?fmtInput(Math.round(v/r*100)/100):'';}
+    else{const v=parse($('cSp').value);if(document.activeElement!==$('cFt'))$('cFt').value=v?fmtInput(Math.round(v*r)):'';}
+  }
+
+  load();
+  ALL_IDS.forEach(id=>{const el=$(id);if(el.type==='range')el.addEventListener('input',calc);else bindNum(el,calc);});
+  bindNum($('cFt'),()=>convFrom('ft'));
+  bindNum($('cSp'),()=>convFrom('sp'));
+  $('applyRef').onclick=()=>{
+    const rf=parse($('refFt').value),rs=parse($('refSp').value);
+    if(rs>0){$('rate').value=fmtInput(Math.round(rf/rs*100)/100);calc();
+      const b=$('applyRef');b.textContent='✓ Kurz použitý';setTimeout(()=>b.textContent='Použiť tento kurz',1300);}
+  };
+  $('resetCal').onclick=()=>{
+    if(!confirm('Obnoviť kalibráciu na predvolené hodnoty?'))return;
+    CAL_IDS.forEach(id=>setVal($(id),$(id).dataset.def));calc();
+  };
+  $('addExtra').onclick=()=>{state.extras.push({name:'Nový doplnok',on:true,val:0,cur:'sp'});buildExtras();calc();};
+  const cc=$('calCard');cc.open=state.calOpen!==false;cc.addEventListener('toggle',()=>{state.calOpen=cc.open;save();});
+  seg('baseType','baseType');seg('limitState','limitState');
+  buildVenoms();buildExtras();calc();
+})();
+</script>
+</body>
+</html>
